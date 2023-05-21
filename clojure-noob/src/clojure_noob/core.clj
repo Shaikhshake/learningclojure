@@ -117,7 +117,9 @@ wow;;
 ;;can make a vector like this
 (vector "hi" {:a "see"});;
 (vector '(1 2 3));; converts into a vector of single element being [(1 2 3)]
-
+;; ?? what is all this?
+(into [] (set {:a :b}) )
+(into [1] (list [1 2]))
 
 
 ;; lists, indexing starts at 0, cant use get, use nth
@@ -313,3 +315,34 @@ wow;;
 ;; ----------------------------------------------------------
 (let [x 2] x) ;; value of let for is the last thing they evaluate
 (let [x 4] (println x) 5);; this will demonstrate that x in this scope is 4 but the value of let form is 5
+
+
+;; ----------------------------------------------------------
+;;loops
+(loop [iteration 0]
+  (println (str "Iteration " iteration ))
+  (if (> iteration 4 )
+   (println "goodday")
+   (recur (inc iteration))))
+
+(defn my-loop
+  ([]
+   (my-loop 0))
+  ([iteration]
+   (println (str "Iteration " iteration))
+   (if (> iteration 4)
+     (println "Good Day!")
+     (my-loop (inc iteration)))))
+
+(my-loop)
+
+
+;; ----------------------------------------------------------
+;; regex
+
+;; CANT UNDERSTAND ANYTHING, WILL COMEBACK TOMORROW
+(re-find #"left" "popeye lefteye")
+
+;;-----------------------------------------------------------
+
+
