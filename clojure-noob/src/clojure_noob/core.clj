@@ -17,6 +17,23 @@
 (if false
   (+ 1 1)
   (+ 2 3))
+;; note that the empty list isn't false
+(if ()
+  (str "Nothing other than nil and false are falsy")
+  (str "This part is useless"))
+
+
+;;predicate is function that either returns true or false
+;; common practice to name predicates with trailing Q marks
+;;example
+;; true?-exactly true false?-exactlyfalse nil? zero? every?-is func true for all arg
+(every? true? [nil]);; if you want to delve deeper, which you should,
+;; use (find-doc #"\?$"), just know that there's a lot of them, loooooootttss
+(symbol? 'hello)
+(keyword? :a)
+
+
+
 
 
 ;; use the do operator when you 
@@ -95,21 +112,39 @@ wow;;
 1/5; ratio, clojure can work with it directly
 
 
-;; take a look at strings
+;; take a look at strings, they're allowed to span multiple lines
 "Im a string";
 "I'm a string too";note the ' in between the "" 
 "I\"m a string as well"; \ is the escape character, common
 ;; only double quotes are allowed for delineating strings 
+"I'm a \n multiline string"
+"This is 
+ also a multiline string"
+(println "Another
+    multiline string 
+      but printed 
+          this time")
+;;most common string function
+(str "e" 1 1 nil 33 nil "boogie");; ignores any nils
+;;Clojure characters are java characters, literal syntax- \{letter}
+;; or for specialcharacters \backspace, \formfeed, \newline ,\return \space \tab
+(str \n \o \t \space \f \u \n);
+(str \newline); gives \n
 
 ;;example
 (def elephantName "Jumbo")
 (str "what is your name? -" elephantName)
 
 
+;; Keywords, these are like a symbol except they begin with a :
+:Keyword ;All keywords resolve to themselves
+
 ;; --------------------------------------------------------
 ;; vectors, indexing starts at zero, conj puts in at the
 ;; end, can use get
 [1 2 3]
+(count [1 1 2 3])
+(count (set [1 1 2 3]))
 (get [1 2 3] 1);
 (conj [1 3 4] 44.4);
 (get [1 2 33] 4 "nothing"); I've provided a default value
@@ -125,7 +160,7 @@ wow;;
 ;; lists, indexing starts at 0, cant use get, use nth
 ;; also conj adds in the beginning, nth is slower than
 ;; get in vectors
-
+(quote (1 2)); also works and the next line is just shortcut
 '(1 2); list literals must start with '
 (list 1 2 3 4);
 (get (nth '(1 {:a "string" :b {:c "madness"}}) 1) :b);;
@@ -165,8 +200,12 @@ wow;;
 
 (def me {:first-name "shaikh" :last-name "shake" :address {:locality "House p near xyz" :district "smol" :state "big"}})
 (get-in me [:address :locality])
+(count me)
 
 ({:hi "whats up?"} :hi)
+
+
+
 
 ;;---------------------------------------------------------
 ;; functions 
@@ -175,7 +214,7 @@ wow;;
 (first '(1 2 3))
 (last [1 2 3 3])
 (or + -)
-(1 2);; will not compile since we're trying call the function 1 using argument 2
+;;(1 2);; will not compile since we're trying call the function 1 using argument 2
 
 
 (inc 2.2)
@@ -215,7 +254,7 @@ wow;;
 (multi-arity-party "hi " " how")
 (multi-arity-party "hi " "how " "are")
 ;; below code wont compile cuz of arity violation
-(multi-arity-party "hi " "how " "are" " you?")
+;;(multi-arity-party "hi " "how " "are" " you?")
 
 (defn giveName
   ([name burgerType]
@@ -311,6 +350,16 @@ wow;;
 ;; you can also pass multiple values to an anonymous function
 (#(println(str "hi " %1 " bye " %2)) "Shojo" "Shoyo")
 
+(defn make-greeter
+  "This function creates greeter function based on your liking"
+  [greeting]
+  #(str greeting " " %))
+
+(def hello-greeter (make-greeter "hello"))
+(hello-greeter "shakalaka")
+(def cursing-grandma (make-greeter "wut in tarnation"))
+(cursing-grandma "grandson")
+
 
 ;; ----------------------------------------------------------
 (let [x 2] x) ;; value of let for is the last thing they evaluate
@@ -326,6 +375,8 @@ wow;;
    (recur (inc iteration))))
 
 (defn my-loop
+  "This function loops through four times, printing Value of iteration each time
+   and Good Day on it's last iteration"
   ([]
    (my-loop 0))
   ([iteration]
@@ -344,5 +395,7 @@ wow;;
 (re-find #"left" "popeye lefteye")
 
 ;;-----------------------------------------------------------
-
+; two control precision
+(+ 1 0.0000000000001M); add a M at the end
+(* 1000N 10000 10000 1000 10000000000)
 
