@@ -169,6 +169,11 @@ wow;;
 (list [1 2 3 4]);; convert it into a list of single element benig ([1 2 3 4])
 
 
+;; NOTE: Maps and sets have a reliable traversal order, but that order depends
+;;       on the implementation details, and cannot be relied upon, or predicted
+;; TO AVOID THIS, use sorted maps and sorted sets
+
+
 
 ;; sets - a. Hash-sets, b.Sorted-Sets
 ;; hashsets are shown here
@@ -189,6 +194,9 @@ wow;;
 (set [1 2 2]);; converts it into a set
 (set '(1 3 3 3 4));; converts it into a set
 
+;; sorted sets - will sort values by their natural order
+(sorted-set "one", "two" "three" "four"); #{"four" "one" "three" "two"}
+
 
 ;; Maps, sorted or hash
 
@@ -203,6 +211,12 @@ wow;;
 (count me)
 
 ({:hi "whats up?"} :hi)
+
+;; sorted maps- will come back sorted according to key
+(sorted-map :1 "1" :2 "2" :3 "3");{:1 "1", :2 "2", :3 "3"}
+(sorted-map :now "is" :not "the" :time "?");{:not "the", :now "is", :time "?"}
+
+
 
 
 
@@ -302,6 +316,7 @@ wow;;
 
 
 
+
 ;; ----------------------------------------------------------
 ;;anonymous functions
 ;; heres the syntax
@@ -391,7 +406,24 @@ wow;;
     (if (< i num)
       (recur (inc i)))))
 
-(list-all-primes-till 14);; Took me 2 hours to figure this out Dammnnnn
+(list-all-primes-till 1);; Took me 2 hours to figure this out Dammnnnn
+
+(defn prime-checker-using-recur
+  [num]
+  (if (or (not (number? num)) (neg? num))
+    (println "invalid input"))
+  (if (= num 2)
+    "prime")
+  (loop [i 2]
+    (if (= i num )
+      "Prime")
+    (if (and (> num i) (not (zero? (rem num i))))
+      (recur (inc i))
+       "Not Prime")))
+
+(prime-checker-using-recur 2)
+
+
 
 
 ;; different way of checking for primes using sequences
@@ -401,20 +433,19 @@ wow;;
 
 (defn refactored-prime-checker
   [num]
-  (if (= num 1)
-    false)
+
   (->> (range 2 num)
        (map #(= (rem num %)))
        (every? false?)))
 
-(refactored-prime-checker 1)
+(refactored-prime-checker 31)
 
 
 
 ;; ----------------------------------------------------------
 ;; For loops
 ;; in short, Clojure has no for loops and no direct mutable variables
-(defn give-back-indexed 
+(defn give-back-indexed
   [coll]
   (map-indexed vector coll))
 (give-back-indexed {:a 1 :b 2}); ([0 [:a 1]] [1 [:b 2]])
@@ -516,7 +547,7 @@ wow;;
 ;; just remember that you can call javadocs in clojure to 
 ;; find what something does in java, Example
 
-(javadoc java.util.Scanner);; will take you to the doc page for Scanner
+;;(javadoc java.util.Scanner);; will take you to the doc page for Scanner
 
 ;; -------------------------------------------------------------------
 ;; Comments- anything after ; is ignored
@@ -527,3 +558,58 @@ wow;;
 ;; therefore it must be correct
 
 ;; -------------------------------------------------------------------
+;;              Everything is a Sequence(Logical list)(NOT CONCRETE LISTS)
+;; 3 core capabilities of sequence
+;; a->get the first item, b-> get the rest of the items, 
+;; c-> create a new sequence by adding an item to the front
+
+(seq? '(1 2 3));; true
+(seq? [1 2 3]);; false
+
+;; a
+(first (vector 1 2 3))
+(first {});; gives nil
+(first #{:a "1" :b :c :d})
+#{:a :b :c :d}
+
+;; b
+(rest #{1 2 3 22 11}); gives (2 3 22 11)
+(rest '(1));; gives the empty seq i.e ()
+(rest {});; gives the empty seq i.e ()
+(rest #{:a "1" :b :c :d})
+
+;; c
+(cons 2 #{1 2 3 4});; cons returns a new sequence where x is the first elem and
+;;  seq is the rest, CONS stands for construct
+(cons '("hi-key" "bye-value") {:a "1" :b "2"}); 
+;;(("hi-key" "bye-value") [:a "1"] [:b "2"])
+(cons {"hi-key" "bye-value"} {:a "1" :b "2"})
+;;({"hi-key" "bye-value"} [:a "1"] [:b "2"]); 
+
+;; convert things to sequence, using (seq coll), get rest of the sequence
+;; after the first element using (next aseq)< = (seq(rest aseq))>
+
+(seq [1 2 3]);; gives (1 2 3)
+(seq '(1 2 3));;same
+(seq {:a "1" :b "2"});; ([:a "1"] [:b "2"]) -- seq of vectors of key-value pair
+(seq #{:a :b :c :d :e})
+(next {:a "1" :b "2"});; ([:b "2"])
+
+
+;; conj(oin) -- used to add one or more elem to collection
+;; (conj coll element & remainder)
+;; note that conj will do the efficient thing, add in front of the list, 
+;; add to the back of sets and vectors
+
+(conj {})
+(conj #{2} 1 2 3)
+(conj {} [:a ""] [:b "sim"]);; {:a "", :b "sim"}
+
+
+;; into adds all items from one collection into another
+;; (into to-coll from-coll) (basic, see docs, dunno what a transducer is)
+
+(into [1 2 ] '(1 2 3 ));[1 2 1 2 3] 
+(into '(1 2 3) [1 2]); (2 1 1 2 3)
+(into #{1 2 3} [1 2 3 4]); #{1 4 3 2}
+
