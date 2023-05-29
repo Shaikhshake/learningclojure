@@ -359,6 +359,7 @@ wow;;
 
 
 ;; ----------------------------------------------------------
+;; let variables are immutable and local
 (let [x 2] x) ;; value of let for is the last thing they evaluate
 (let [x 4] (println x) 5);; this will demonstrate that x in this scope is 4 but the value of let form is 5
 (let [x 2 y 4] (str "x : " x ", y: " y))
@@ -410,18 +411,13 @@ wow;;
 
 (defn prime-checker-using-recur
   [num]
-  (if (or (not (number? num)) (neg? num))
-    (println "invalid input"))
-  (if (= num 2)
-    "prime")
   (loop [i 2]
-    (if (= i num )
-      "Prime")
+    (if (= i num)
+      (println "Prime"))
     (if (and (> num i) (not (zero? (rem num i))))
-      (recur (inc i))
-       "Not Prime")))
+      (recur (inc i)))))
 
-(prime-checker-using-recur 2)
+(prime-checker-using-recur "")
 
 
 
@@ -430,6 +426,7 @@ wow;;
 (defn new-prime-checker
   [teee]
   (every? false? (map #(= (rem teee %) 0) (range 2 teee))))
+(new-prime-checker 10)
 
 (defn refactored-prime-checker
   [num]
@@ -562,6 +559,7 @@ wow;;
 ;; 3 core capabilities of sequence
 ;; a->get the first item, b-> get the rest of the items, 
 ;; c-> create a new sequence by adding an item to the front
+;; Note- lazy sequence means a sequence not calculated until it is used
 
 (seq? '(1 2 3));; true
 (seq? [1 2 3]);; false
@@ -578,13 +576,14 @@ wow;;
 (rest {});; gives the empty seq i.e ()
 (rest #{:a "1" :b :c :d})
 
-;; c
-(cons 2 #{1 2 3 4});; cons returns a new sequence where x is the first elem and
+;; c - cons returns a new sequence where x is the first elem and
 ;;  seq is the rest, CONS stands for construct
+(cons 2 #{1 2 3 4});; 
 (cons '("hi-key" "bye-value") {:a "1" :b "2"}); 
 ;;(("hi-key" "bye-value") [:a "1"] [:b "2"])
 (cons {"hi-key" "bye-value"} {:a "1" :b "2"})
-;;({"hi-key" "bye-value"} [:a "1"] [:b "2"]); 
+;;({"hi-key" "bye-value"} [:a "1"] [:b "2"]);
+(cons 1 '(1 2 3));; (1 1 2 3)
 
 ;; convert things to sequence, using (seq coll), get rest of the sequence
 ;; after the first element using (next aseq)< = (seq(rest aseq))>
@@ -609,7 +608,277 @@ wow;;
 ;; into adds all items from one collection into another
 ;; (into to-coll from-coll) (basic, see docs, dunno what a transducer is)
 
-(into [1 2 ] '(1 2 3 ));[1 2 1 2 3] 
+(into [1 2] '(1 2 3));[1 2 1 2 3] 
 (into '(1 2 3) [1 2]); (2 1 1 2 3)
 (into #{1 2 3} [1 2 3 4]); #{1 4 3 2}
+(into #{1 2 3 4 5} '(22 33 22 44 22));; #{1 4 33 22 44 3 2 5}
+(into '(1 2 3 4) #{22 1 3 4}); (3 22 4 1 1 2 3 4)
+
+
+;; ----------------------------------------------------------------------
+;;                    Clojure Sequence Library
+
+
+;; range(start, end, step) , (range end), (range start end) - end is always exclusive
+;; default to end is infinity, default for start is 0
+(range 3);(0 1 2)
+(range 2 10);(2 3 4 5 6 7 8 9)
+(range 2 4 0.5);; (2 2.5 3.0 3.5)
+(range 2 -1);() empty list
+(range 2 -1 2); ()
+(range 2 -1 -2);; (2 0) , step is negative, works
+(range 2 4 -0.5); ()
+;;if step is zero, then range will just give start an infinite number of times
+(range 2 4 0);; (2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 ...)
+
+
+;; (repeat n x)- repeats element x n times
+(repeat 10 :x); (:x :x :x :x :x :x :x :x :x :x)
+(repeat 1);; will give an infinite sequence of 1's;
+
+
+;; (iterate f x) --returns a seq x, (f x), (f(f x)).. f must be free of side-effects
+(iterate inc 1); (1 2 3 4 ...) -infinite sequence
+(iterate + 2); gives (2 2 2 2... ) cuz  (+ 2); =>2
+(+ 2); 2
+(iterate zero? (range -2 2))
+(iterate zero? [1 2]);; will not work, x must be a single value, number
+;;using this you can define the LIST OF WHOLE NUMBERS
+(def whole-numbers (iterate inc 0))
+
+
+;;(take n sequence) -- return n elems of sequence, all elems in n >count(seq)
+(take 4 (iterate - 2));; =>(2 -2 2 -2)  ,cuz (- 2)=> -2, (- -2)=> 2
+(take 10 (map zero? (range -2 2)));; (false false true false)
+
+;; (cycle coll), takes a collection and cycles it infinitely
+
+(cycle '(1)); (1 1 1 1 ...)
+(take 11 (cycle (range 6))); (0 1 2 3 4 5 0 1 2 3 4)
+
+(->> (range 6)
+     (cycle)
+     (take 11));; ; (0 1 2 3 4 5 0 1 2 3 4)
+
+
+;; interleave - (interleave seq1 seq2)
+;; interleaves two sequences(finite and infinite, doesn't matter)
+;; first element of first seq, first elem of second, second elem of first
+;; second elem of second seq, so on until one of the seq exhausts
+
+(interleave [1 2 3] '("1" "2" "3" "4"));; (1 "1" 2 "2" 3 "3")
+(interleave whole-numbers (range 0.0 10 0)); (0, 0.0, 1, 0.0, 2, 0.0, 3, 0.0, 4...)
+(str "hi")
+
+;; interpose - (interpose separator coll)
+;; returns seq where each elem is segregated by separator
+(interpose 1 '(1.3 2 3 4 5)); (1.3 1 2 1 3 1 4 1 5)
+(interpose "," (take 10 whole-numbers))
+; (0 "," 1 "," 2 "," 3 "," 4 "," 5 "," 6 "," 7 "," 8 "," 9)
+
+;; (apply fn args/list)
+(apply str (interpose ", " (take 10 whole-numbers)))
+;;"0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+(->> (take 10 whole-numbers)
+     (interpose ", ")
+     (apply str));; same as above
+
+;; generating all leaps years till the year 10_000
+(defn leapYear?
+  [num]
+  (if (zero? (mod num 400))
+    true
+    (if (zero? (mod num 100))
+      false
+      (if (zero? (mod num 4))
+        true
+        false))))
+
+(leapYear? 1)
+(leapYear? 100)
+
+;; DOESNT WORK, MUST COME BACK HERE
+(defn list-leapYears-till
+  [num]
+  (let [coll (take num (iterate inc 0))]
+    (println coll)
+    (loop [years coll leapyears []]
+      (if (nil? (first years))
+        (println (str leapyears) " entered first if"))
+      (if (and (not (nil? (first years))) (leapYear? (first years)))
+        (do (println "enterd second if")
+            (conj leapyears (first years))))
+      (if (not (nil? (first years)))
+        (do (println "third if")
+            (recur (rest coll) (leapyears))))))) ;; this is giving me ArityException
+(rest ())
+
+(list-leapYears-till 5)
+
+;; using filter
+;; (filter pred coll) examples
+(defn list-leapYears-using-filter
+  [num]
+  (->> (take num whole-numbers)
+       (filter leapYear?)))
+(list-leapYears-using-filter 100)
+
+;; (take-while pred coll) keeps taking the elems of coll until pred returns false
+(take-while leapYear? [4 104 204 400 100 2000 2008 2020 1000]);; (4 104 204 400)
+;; execution stops since (leapYear? 100) is false
+
+
+;; (drop-while pred coll) keeps dropping(not returning) from coll until pred returns
+;; false and then returns the rest
+(drop-while leapYear? [4 104 204 400 100 2000 2008 2020 1000])
+; (100 2000 2008 2020 1000)
+;; (leapYear? 100) returns false and drop-while returns the rest
+(take 10 (drop 500 (filter leapYear? whole-numbers)))
+;;(2060 2064 2068 2072 2076 2080 2084 2088 2092 2096)
+
+
+;; split-at splits at an index, split-with splits using a predicate
+(split-at 5 [4 104 204 400 100 2000 2008 2020 1000]);
+;[4 104 204 400 100 2000 2008 2020 1000]
+(split-with leapYear? [4  100 104 204 400 100 2000 2008 2020 1000])
+;; [(4 104 204 400) (100 2000 2008 2020 1000)] 
+;; split-with splits the list the moment the predicate returns a false
+(split-with leapYear? []); => [()()] returns two empty seqs, keep that in mind
+
+
+
+;; (every? pred coll) returns true if pred is true for every elem of coll
+;; (some pred coll) returns true if pred is true for atleast one elem of coll
+
+;; NOTE: be careful with these, they might go on forever.
+;; like this (take-last 1 whole-numbers)
+(every? even? whole-numbers);; false
+(some leapYear? [1 4 100 200]); true;; note some is not a predicate and returns
+;; first 
+;; common way to use some to check set membership
+(some #{20} [nil 0 -1 20 1 false]);; 20
+(some identity [nil false 0 -1 20 1 false])
+
+;; (not-every? pred coll)
+;; (not-any? pred coll)
+(not-every? even? [1 2 3 4 5]); true
+(not-any? odd? [1 2 3 4 5 6]); false
+
+
+
+;; TRANSFORMING SEQUENCES
+
+;; maps - (map f coll & colls) -- will stop when the smallest coll is exhausted
+(map leapYear? [1 200 1 4000 2 5]);; (false false false true false false)
+(map #(format "<p>%s</p>" %1) ["This" "is" "a" "line"])
+;; ("<p>This</p>" "<p>is</p>" "<p>a</p>" "<p>line</p>")
+
+(map #(format "<%s>%s<%s>" %1 %2 %1) ["h1" "h2" "h3" "h4" "h5"] ["this" "is" "a" "line"]);; ("<h1>this<h1>" "<h2>is<h2>" "<h3>a<h3>" "<h4>line<h4>")
+
+(map #(format "<%s>%s %s<%s>" %1 %2 %3 %1) ["h1" "h2" "h3" "h4" "h5"] ["this" "is" "a" "line"] (seq (take 20 (iterate str ":Bing!"))))
+;;("<h1>this :Bing!<h1>" "<h2>is :Bing!<h2>" "<h3>a :Bing!<h3>" "<h4>line :Bing!<h4>")
+
+
+;; reduce -- (reduce f coll) or (reduce f val coll)
+;; f must take two args, reduce gives (f(f...(f x y) y<secondlast>) y<last>)
+
+(defn sum-of-n-numbers
+  [num]
+  (->> (range 1 (inc num))
+       (reduce +)))
+
+  ;; (reduce + (range 1 (inc num))))
+(sum-of-n-numbers 100)
+
+(defn factorial
+  [num]
+  (->> (range 1 (inc num))
+       (reduce *)))
+(factorial 6)
+(factorial -1)
+(factorial 0)
+(factorial 10)
+
+
+;; sorting collection using (sort pred coll), or (sort coll) <natural order>
+(sort > [1213 134141 1414 121 1 33 421]); (134141 1414 1213 421 121 33 1)
+(sort [1213 134141 1414 121 1 33 421]); (1 33 121 421 1213 1414 134141)
+
+;; (sort-by keyfn comparisonfn coll) (sort-by comparisonfn coll)
+(sort-by :grade [{:grade 99} {:grade 100} {:grade 28} {:grade 99.5}])
+;; ({:grade 28} {:grade 99} {:grade 99.5} {:grade 100})
+(sort-by :grade > [{:grade 99} {:grade 100} {:grade 28} {:grade 99.5}])
+;; ({:grade 100} {:grade 99.5} {:grade 99} {:grade 28})
+
+
+
+;; IMPORTANT
+;; List Comprehension
+;; (for [binding-form coll-expr filter-expr? ..] expr)
+
+;; for [each] word in [seq of words], format [according to format instructions]
+(for [word ["Whatcha" "Upto" "to" "?"]] (format "<p>%s</p>" word))
+;; ("<p>Whatcha</p>" "<p>Upto</p>" "<p>to</p>" "<p>?</p>")
+
+(last (take 200 (for [n whole-numbers :when (leapYear? n)] n))); 820
+;; returns the first 200 leap Years
+
+;; :when selects while predicate is true
+;; :while keeps evaluating until expression(think predicate) is true/ returns true
+
+
+(for [n whole-numbers :while (even? n)] n);; (0) is return
+(for [years [2000 2004 1100 4 8] :while (leapYear? years)] years);; (2000 2004)
+
+;; can also use two collection binding
+;; note that clojure iterates over the rightmost binding expression in a seq 
+;; comprehension first then goes left
+(for [letters "ABC" rank (range 1 4)] (format "%s%s" letters rank));
+;;("A1" "A2" "A3" "B1" "B2" "B3" "C1" "C2" "C3")
+(for [rank (range 1 4) letters "ABC"] (format "%s%s" letters rank));
+;;("A1" "B1" "C1" "A2" "B2" "C2" "A3" "B3" "C3")
+(for [rank (range 1 3) letters "AB" symbols ",."] (format "%s%s%s" letters rank symbols));
+
+;; find right triangle where sum of sides is 24
+
+(for [c (range 1 24)
+      a (range 1 (inc c))
+      b (range 1 (inc a))
+      :when (= (+ (* a a) (* b b))
+                (* c c))
+      :when (== (+ a b c) 24)]
+  [a b c])
+
+;; WTFFFFFFF
+;; (def primes
+;;   (concat
+;;    [2 3 5 7]
+;;    (lazy-seq
+;;     (let [primes-from
+;;           (fn primes-from [n [f & r]]
+;;             (if (some #(zero? (rem n %))
+;;                       (take-while #(<= (* % %) n) primes))
+;;               (recur (+ n f) r)
+;;               (lazy-seq (cons n (primes-from (+ n f) r))))) wheel (cycle [2 4 2 4 6 2 6 4 2 4 6 6 2 6 4 2 6 4 6 8 4 2 4 2 4 8 6 4 6 2 4 6 2 6 6 4 2 4 6 2 6 4 2 4 2 10 2 10])]
+;;       (primes-from 11 wheel)))))
+
+
+;; doall and dorun functions exists to deal with sideeffects, 
+;; learn then later
+
+
+;; dunno how to handle files, will need to learn using
+;; some other resource, the text is driving me nuts on this topic
+(import 'java.io.File)
+(map #(.getName %) (.listFiles (File. "./src/clojure_noob")))
+;; (".clj-kondo" ".lsp" "core.clj")
+
+(seq (.listFiles (File. "./src/clojure_noob")))
+;; (#object[java.io.File 0x68614184 "./src/clojure_noob/.clj-kondo"]
+;;  #object[java.io.File 0x9324027 "./src/clojure_noob/.lsp"]
+;;  #object[java.io.File 0x2c44ae5e "./src/clojure_noob/core.clj"])
+(require '[clojure.java.io :refer [reader]])
+(with-open [rdr (reader "./src/clojure_noob/core.clj")]
+  (count (line-seq rdr)))
+
 
