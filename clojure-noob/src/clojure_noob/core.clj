@@ -787,6 +787,8 @@ wow;;
   (->> (range 1 (inc num))
        (reduce +)))
 
+
+
   ;; (reduce + (range 1 (inc num))))
 (sum-of-n-numbers 100)
 
@@ -839,13 +841,17 @@ wow;;
 ;;("A1" "B1" "C1" "A2" "B2" "C2" "A3" "B3" "C3")
 (for [rank (range 1 3) letters "AB" symbols ",."] (format "%s%s%s" letters rank symbols));
 
+;; :let works as a local binding, similar to clojure’s let .
+;; :when works as a filter, skipping cases where loop variables don’t satisfy a condition(like continue in C or Java)
+;; :when works as a test, ending the current loop early if loop variables don’t satisfy a condition(like break in C or Java). Notice that it doesn’t end the entire for loop, only the inner-most loop.
+
 ;; find right triangle where sum of sides is 24
 
 (for [c (range 1 24)
       a (range 1 (inc c))
       b (range 1 (inc a))
       :when (= (+ (* a a) (* b b))
-                (* c c))
+               (* c c))
       :when (== (+ a b c) 24)]
   [a b c])
 
@@ -880,5 +886,236 @@ wow;;
 (require '[clojure.java.io :refer [reader]])
 (with-open [rdr (reader "./src/clojure_noob/core.clj")]
   (count (line-seq rdr)))
+
+
+
+;; --------------------------------------------------------------------------
+;;                   REVIEW ALL OF THIS
+(defn trying-loop
+  [coll]
+  (loop [mylist coll sum 0]
+    (if (empty? mylist)
+      sum
+      (recur (rest mylist) (+ (first mylist) sum)))))
+(trying-loop '())
+(conj '(1) 2)
+
+;; REFACTOR THIS SHIT USING ->> magic
+(defn stupid-fibb
+  [num]
+  (if (or (zero? num) (= num 1))
+    [0])
+  ;; (if (= num 1)
+  ;;   "nothing")
+  (last (take (- num 1) (take 10 (iterate #(conj % (+ (last (butlast %)) (last %))) [0 1])))))
+
+(stupid-fibb 15) ;; WORKS
+
+(defn sensible-fibb
+  [num]
+  (loop [fibseries [0 1] cnt 0]
+    (if (< num 2)
+      [0 1])
+    (if (< cnt (- num 2))
+      (recur (conj fibseries (+ (last fibseries) (last (butlast fibseries))))
+             (inc cnt))
+      fibseries)))
+(sensible-fibb 5)
+(fn [coll]
+  (loop [workcoll coll mylist []]
+    (if (empty? coll)
+      (loop [fir (first workcoll) rem (rest workcoll)]
+        (if (coll? fir)
+          (recur () ()))))))
+
+((fn [coll]
+   (loop [workcoll coll mylist []]
+     (if (empty? coll) workcoll)
+     (if (empty? workcoll) mylist)
+     (if (and (not (empty? workcoll)) (not (empty? coll)))
+       (loop [fir (first workcoll) rem (rest workcoll)]
+         (if (and (coll? fir) (not (nil? fir)))
+           (recur (first fir) (next fir))
+           (conj mylist fir)))
+       (recur (rest workcoll) (mylist))))) [1 2 3 4])
+
+(defn flatten-this
+  [[h & rem]]
+  (if h
+    (if (coll? h)
+      (concat (flatten-this h) (flatten-this rem))
+      (cons h (flatten-this rem)))))
+(flatten-this [1 [2]])
+
+(Character/isUpperCase ["abbb"])
+(.toUpperCase "a")
+(apply str (filter #(if (= (.toUpperCase %) %) true false) (seq "aB")))
+
+
+((defn ret-up [[fir & res]]
+   (if fir
+     (if (= (.toUpperCase fir) fir)
+       (apply str fir (ret-up (())))
+       false))) "aB")
+
+(filter (fn [x] (Character/isUpperCase x)) "abCD &S")
+
+(#(apply str (filter (fn [x] (Character/isUpperCase x)) %))
+ "aBa(C)")
+#(clojure.string/replace % #"[^A-Z]" "")
+(apply str (set "aaaabbb"))
+
+
+(defn compress [lst]
+  (let [mylist [] one (first lst) remaining (rest lst)]
+    (if (and one)
+      (if (= one (first remaining))
+        (do (cons mylist one)
+            (println "one: " one ",mylist: " mylist ", 1sI,")
+            (compress (rest remaining)))
+        (do (conj mylist one)
+            (println "one: " one ",mylist: " mylist ", 2sI,")
+            (compress remaining)))
+      (println mylist))))
+
+
+(compress "ab")
+(compress [1 2 2 2 3 4 4])
+(first "ab")
+(rest "ab")
+
+;; problem is to write a function to remove consecutive duplicates from a 
+;; sequence
+
+;; 1. approach - for each elem add it to list and walk the list until you find a 
+;;               diff elem and repeat till the end is reached
+;;
+;; DOESNT WORK               
+;; (defn what
+;;   [givenseq]
+;;   (let [mylist []]
+;;     (for [fir (first givenseq) :while (not (nil? fir))
+;;           sec (first (rest givenseq)) :while (not (nil? sec))]
+;;       (if (= (fir sec))
+;;         (do (conj mylist fir)
+;;             (what (rest givenseq)))
+;;         (do (conj (conj mylist fir) second)
+;;             (what (rest (rest givenseq))))))))
+
+;; 2. use loop
+
+;; DOESNT WORK
+;; (defn what
+;;   [givenseq]
+;;   (let [mylist []]
+;;     (loop [fir (first givenseq) mycoll givenseq]
+;;       (if (and (not= fir (second mycoll)) (not (empty? mycoll)))
+;;         (do (conj mylist fir)
+;;             (recur (first (rest mycoll)) (rest mycoll)))
+;;         (do (conj mylist fir)
+;;             (loop [getridcoll mycoll]
+;;               (if (= (first getridcoll) (second getridcoll))
+;;                 (recur (next getridcoll)))))))
+;;                 mylist))
+
+;; need to come up with a func that takes elem and runs through the list
+;; until it finds a mismatch
+
+
+;; (reduce (fn [[fir & rem]]
+;;           (if (and (= (fir) (first rem)) (seq (first rem)))
+;;             (rest (rest rem))))  '(1 2 3 4 5))
+
+;; the last expression returned by this fn will be the value of (reduce ...)
+;; so we need to ensure that the value returned is the fillerlist, filled with 
+;; elements
+(defn wut
+  [coll]
+  (reduce (fn [fillerlist coll]
+            (if (= (last fillerlist) coll)
+              fillerlist
+              (do (println "fl: " fillerlist " last fl: " (last fillerlist) ",coll: " coll)
+                  (conj fillerlist coll))))  [] coll))
+
+
+
+(defn re:wut
+  [givenseq]
+  (reduce (fn [fillerlist givenseq]
+            (if (= (last fillerlist) givenseq)
+              fillerlist
+               (conj fillerlist givenseq))) [] givenseq))
+
+(re:wut '(1 3 2 3 3 3 4 4 4 4 5))
+(re:wut [[1 2] [1 2] [3 4] [1 2]]) ;
+
+;; a function to pack consecutive duplicates into sublists
+;; approach
+;; 1 - write a sub function that compares the first element of the remaining coll
+;; and the last element of the last sublist added
+
+;; this is so close to being correct
+;; DOESNT WORK!!
+(defn packem
+  [givenseq]
+  (reduce (fn [fillerlist givenseq]
+            (if (= (last (last fillerlist)) givenseq)
+              (do 
+                  (println "1IF->fl:" fillerlist ",lastfi:" (last fillerlist) ",givseq:" givenseq)
+                  (conj (last fillerlist) givenseq)
+                  )
+              (do 
+                  (println "2IF->fl:" fillerlist ",lastfi:" (last fillerlist) ",givseq:" givenseq)
+                  (conj fillerlist (seq (list givenseq)))))) [] givenseq))
+                
+                
+
+(packem '(1 2 3 4 4 4))
+
+(=(last (last [])) '(1))
+(conj [] (list 1))
+
+;; (partition-by f coll) applies f to each element of coll and groups consecutiv
+;; elems that give the same result
+
+(partition-by #(> % 3) '(1 4 2 5 3 2 2 1)); ((1) (4) (2) (5) (3 2 2 1))
+;; identity- (identity x) - returns x equivalent to (fn [x] x)
+(identity 10); 10
+
+;; answer to our Question
+(defn short-packem
+  [givenseq]
+  (partition-by identity givenseq))
+
+(short-packem '(1 3 3 1 1 2 2 3 4)) ;;((1) (3 3) (1 1) (2 2) (3) (4))
+
+;; Write a function to Duplicate each element of the sequence
+
+(reduce (fn [fillerlist givenseq]
+          (apply conj fillerlist (repeat 2 givenseq)))
+         [] '(1 2 3));
+
+
+
+;;[1 1 2 2 3 3]
+
+;; Write a function that replicates each element of a sequence of a variable number
+;; of times
+
+ 
+  (defn dup-what
+    [givenseq num]
+    (reduce (fn [fillerlist givenseq]
+              (apply conj fillerlist (repeat num givenseq)))
+            [] givenseq))
+((fn [givseq num] (reduce (fn [fillerlist givenseq]
+                            (apply conj fillerlist (repeat num givenseq)))
+                          [] givseq)) [1 2 3] 3)
+
+
+(dup-what [1 2] 3)
+
+
+
 
 
